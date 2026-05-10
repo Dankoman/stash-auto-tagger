@@ -1,7 +1,7 @@
 name: Auto Tagger
 description: Automatiskt identifierar och föreslår taggar för scener via lokala AI-modeller (JoyTag). Inkluderar stöd för pausning, bildextraktion och automatiskt skapande av taggar.
 version: 1.1.0
-url: https://github.com/marqs/stash-auto-tagger
+url: https://github.com/Dankoman/stash-auto-tagger
 
 ui:
   javascript:
@@ -24,7 +24,7 @@ ui:
 settings:
   api_url:
     displayName: API URL
-    description: URL till din JoyTag/Auto-Tagger webtjänst (t.ex. http://localhost:5001)
+    description: "URL till din JoyTag/Auto-Tagger webtjänst (t.ex. http://localhost:5001)"
     type: STRING
     default: "http://localhost:5001"
   api_timeout:
