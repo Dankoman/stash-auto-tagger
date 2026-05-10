@@ -16,20 +16,25 @@
     // Hämta plugin-inställningar
     async function getPluginSettings() {
         const query = `
-            query FindPlugin($id: String!) {
-                findPlugin(id: $id) {
+            query {
+                plugins {
                     id
+                    name
                     enabled
-                    configuration
+                    settings
                 }
             }`;
         try {
-            const resp = await PluginApi.GQL.query(query, { id: "auto-tagger" });
-            if (resp && resp.data && resp.data.findPlugin) {
-                return resp.data.findPlugin.configuration || {};
+            const resp = await PluginApi.GQL.query(query);
+            if (resp && resp.data && resp.data.plugins) {
+                const myPlugin = resp.data.plugins.find(p => p.name === "Auto Tagger" || p.id === "auto-tagger");
+                if (myPlugin && myPlugin.settings) {
+                    console.log("Hittade plugin-inställningar:", myPlugin.settings);
+                    return myPlugin.settings;
+                }
             }
         } catch (e) {
-            console.error("Kunde inte hämta plugin-inställningar:", e);
+            console.error("Kunde inte hämta plugin-inställningar via GQL:", e);
         }
         return {};
     }
@@ -172,8 +177,8 @@
 
         // Hämta inställningar
         const settings = await getPluginSettings();
-        const apiUrl = settings.api_url || "http://localhost:5000";
-        const timeout = (settings.api_timeout || 30) * 1000;
+        const apiUrl = settings.api_url || "http://192.168.0.140:5000";
+        const timeout = (settings.api_timeout || 60) * 1000;
         const minConf = settings.min_confidence || 0.2;
 
         // Pausa videon
