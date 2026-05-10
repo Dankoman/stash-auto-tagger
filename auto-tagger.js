@@ -13,6 +13,20 @@
         return new Blob([ab], {type: mimeString});
     }
 
+    // Helper för GraphQL-anrop (CSP-safe via relativ sökväg)
+    async function stashGraphQL(query, variables = {}) {
+        const resp = await fetch('/graphql', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, variables })
+        });
+        const result = await resp.json();
+        if (result.errors) {
+            throw new Error(result.errors.map(e => e.message).join("; "));
+        }
+        return result.data;
+    }
+
     // Hämta plugin-inställningar
     async function getPluginSettings() {
         const query = `
@@ -25,11 +39,10 @@
                 }
             }`;
         try {
-            const resp = await PluginApi.GQL.query(query);
-            if (resp && resp.data && resp.data.plugins) {
-                const myPlugin = resp.data.plugins.find(p => p.name === "Auto Tagger" || p.id === "auto-tagger");
+            const data = await stashGraphQL(query);
+            if (data && data.plugins) {
+                const myPlugin = data.plugins.find(p => p.name === "Auto Tagger" || p.id === "auto-tagger");
                 if (myPlugin && myPlugin.settings) {
-                    console.log("Hittade plugin-inställningar:", myPlugin.settings);
                     return myPlugin.settings;
                 }
             }
@@ -40,35 +53,36 @@
     }
 
     // GraphQL Mutation för att skapa en tagg om den inte finns
-    async function getOrCreateTag(tagName) {
+    async function getOrCreateTag(tagName, autoCreate) {
         // Först, sök om taggen finns
         const query = `
-            query FindTags($filter: FindFilterType, $tag_filter: TagFilterType) {
-                findTags(filter: $filter, tag_filter: $tag_filter) {
+            query FindTags($tag_filter: TagFilterType) {
+                findTags(tag_filter: $tag_filter) {
                     tags { id name }
                 }
             }`;
         const variables = {
-            filter: { q: tagName, per_page: 1 },
             tag_filter: { name: { value: tagName, modifier: "EQUALS" } }
         };
         
         try {
-            const resp = await PluginApi.GQL.query(query, variables);
-            const tags = resp.data.findTags.tags;
+            const data = await stashGraphQL(query, variables);
+            const tags = data.findTags.tags;
             if (tags && tags.length > 0) {
                 return tags[0].id;
             }
-        } catch(e) { console.error(e); }
+        } catch(e) { console.error("Sökfel för tagg:", tagName, e); }
 
-        // Om den inte finns, skapa den
+        // Om den inte finns, skapa den om inställningen tillåter
+        if (!autoCreate) return null;
+
         const createMutation = `
             mutation TagCreate($input: TagCreateInput!) {
                 tagCreate(input: $input) { id name }
             }`;
         try {
-            const createResp = await PluginApi.GQL.mutate(createMutation, { input: { name: tagName } });
-            return createResp.data.tagCreate.id;
+            const data = await stashGraphQL(createMutation, { input: { name: tagName } });
+            return data.tagCreate.id;
         } catch(e) {
             console.error("Kunde inte skapa tagg:", tagName, e);
             return null;
@@ -80,23 +94,24 @@
         // Hämta befintliga taggar först
         const query = `query FindScene($id: ID!) { findScene(id: $id) { tags { id } } }`;
         try {
-            const resp = await PluginApi.GQL.query(query, { id: sceneId });
-            const existingTagIds = resp.data.findScene.tags.map(t => t.id);
+            const data = await stashGraphQL(query, { id: sceneId });
+            const existingTagIds = data.findScene.tags.map(t => t.id);
             
             // Slå ihop och ta bort dubbletter
             const finalTagIds = Array.from(new Set([...existingTagIds, ...newTagIds]));
             
-            const mutate = `mutation SceneUpdate($input: SceneUpdateInput!) { sceneUpdate(input: $input) { id } }`;
-            await PluginApi.GQL.mutate(mutate, { input: { id: sceneId, tag_ids: finalTagIds } });
+            const mutate = `mutation SceneUpdate($input: SceneUpdateInput!) { sceneUpdate(input: $input) { id tag_ids } }`;
+            await stashGraphQL(mutate, { input: { id: sceneId, tag_ids: finalTagIds } });
             
-            // Ladda om sidan eller scen-datan för att reflektera ändringarna
+            // Ladda om sidan för att visa de nya taggarna
             window.location.reload();
         } catch(e) {
             console.error("Kunde inte uppdatera scen:", e);
+            alert("Kunde inte spara taggar på scenen: " + e.message);
         }
     }
 
-    function showTagsModal(sceneId, tags) {
+    function showTagsModal(sceneId, tags, settings) {
         const overlay = document.createElement('div');
         overlay.className = 'auto-tagger-modal-overlay';
         
@@ -146,19 +161,28 @@
         saveBtn.className = 'btn-save';
         saveBtn.innerText = 'Spara valda taggar';
         saveBtn.onclick = async () => {
+            if (selectedTags.size === 0) {
+                document.body.removeChild(overlay);
+                return;
+            }
+
             saveBtn.innerText = 'Sparar...';
             saveBtn.disabled = true;
             
             const tagIds = [];
+            const autoCreate = settings.auto_create_tags !== false; // Default true om ej satt
+
             for (const tagName of selectedTags) {
-                const tId = await getOrCreateTag(tagName);
+                const tId = await getOrCreateTag(tagName, autoCreate);
                 if (tId) tagIds.push(tId);
             }
             
             if (tagIds.length > 0) {
                 await addTagsToScene(sceneId, tagIds);
+            } else {
+                alert("Inga giltiga taggar kunde hittas eller skapas. Kontrollera inställningarna.");
+                document.body.removeChild(overlay);
             }
-            document.body.removeChild(overlay);
         };
         
         actions.appendChild(cancelBtn);
@@ -179,7 +203,6 @@
         const settings = await getPluginSettings();
         const apiUrl = settings.api_url || "http://192.168.0.140:5000";
         const timeout = (settings.api_timeout || 60) * 1000;
-        const minConf = settings.min_confidence || 0.2;
 
         // Pausa videon
         video.pause();
@@ -229,9 +252,7 @@
 
             const result = await response.json();
             if (result.tags && result.tags.length > 0) {
-                // Filtrera baserat på konfidens om API:et returnerar det (StashAPI Go returnerar just nu bara en lista med strängar)
-                // Om vi vill ha mer avancerad filtrering får vi uppdatera Go-API:et också.
-                showTagsModal(sceneId, result.tags);
+                showTagsModal(sceneId, result.tags, settings);
             } else {
                 alert("JoyTag hittade inga taggar.");
             }

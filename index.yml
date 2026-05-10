@@ -1,7 +1,7 @@
 - name: Auto Tagger
-  version: 1.1.0
+  version: 1.2.0
   path: auto-tagger.zip
-  sha256: 3149083c158c499842d16be4a0d50793a4a2e4b1c5276c7cbf92c4929137d113
+  sha256: 5c53ce7d2850a768011680cab2e62dd0f1f69f57d3ea3f59f291ca961ce1f84d
   description: Automatiskt identifierar och föreslår taggar för scener via lokala
     AI-modeller (JoyTag). Inkluderar stöd för pausning, bildextraktion och automatiskt
     skapande av taggar.
