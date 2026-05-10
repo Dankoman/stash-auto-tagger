@@ -1,5 +1,5 @@
 name: Auto Tagger
-description: Automatiskt identifierar och föreslår taggar för scener via lokala AI-modeller (JoyTag). Inkluderar stöd för pausning, bildextraktion och automatiskt skapande av taggar.
+description: "Automatiskt identifierar och föreslår taggar för scener via lokala AI-modeller (JoyTag). Inkluderar stöd för pausning, bildextraktion och automatiskt skapande av taggar."
 version: 1.1.0
 url: https://github.com/Dankoman/stash-auto-tagger
 
@@ -26,19 +26,15 @@ settings:
     displayName: API URL
     description: "URL till din JoyTag/Auto-Tagger webtjänst (t.ex. http://localhost:5001)"
     type: STRING
-    default: "http://localhost:5001"
   api_timeout:
     displayName: API Timeout (sekunder)
     description: Maximal väntetid för bildanalys
     type: NUMBER
-    default: 30
   min_confidence:
     displayName: Minimum konfidensgrad
     description: Lägsta konfidensgrad (0.0-1.0) för att visa en tagg som förslag
     type: NUMBER
-    default: 0.4
   auto_create_tags:
     displayName: Skapa taggar automatiskt
     description: Skapa taggar i Stash om de inte redan finns
     type: BOOLEAN
-    default: true
