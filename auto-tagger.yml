@@ -24,7 +24,7 @@ ui:
 settings:
   api_url:
     displayName: API URL
-    description: "URL till din JoyTag/Auto-Tagger webtjänst (t.ex. http://localhost:5001)"
+    description: "URL till din JoyTag/Auto-Tagger webtjänst (t.ex. http://localhost:5000)"
     type: STRING
   api_timeout:
     displayName: API Timeout (sekunder)

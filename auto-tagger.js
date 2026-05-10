@@ -13,6 +13,27 @@
         return new Blob([ab], {type: mimeString});
     }
 
+    // Hämta plugin-inställningar
+    async function getPluginSettings() {
+        const query = `
+            query FindPlugin($id: String!) {
+                findPlugin(id: $id) {
+                    id
+                    enabled
+                    configuration
+                }
+            }`;
+        try {
+            const resp = await PluginApi.GQL.query(query, { id: "auto-tagger" });
+            if (resp && resp.data && resp.data.findPlugin) {
+                return resp.data.findPlugin.configuration || {};
+            }
+        } catch (e) {
+            console.error("Kunde inte hämta plugin-inställningar:", e);
+        }
+        return {};
+    }
+
     // GraphQL Mutation för att skapa en tagg om den inte finns
     async function getOrCreateTag(tagName) {
         // Först, sök om taggen finns
@@ -149,6 +170,12 @@
             return;
         }
 
+        // Hämta inställningar
+        const settings = await getPluginSettings();
+        const apiUrl = settings.api_url || "http://localhost:5000";
+        const timeout = (settings.api_timeout || 30) * 1000;
+        const minConf = settings.min_confidence || 0.2;
+
         // Pausa videon
         video.pause();
 
@@ -179,11 +206,16 @@
         document.body.appendChild(loadingOverlay);
 
         try {
-            const response = await fetch("http://localhost:5001/api/tag_suggest", {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+            const response = await fetch(`${apiUrl.replace(/\/$/, '')}/api/tag_suggest`, {
                 method: "POST",
-                body: formData
+                body: formData,
+                signal: controller.signal
             });
 
+            clearTimeout(timeoutId);
             document.body.removeChild(loadingOverlay);
 
             if (!response.ok) {
@@ -192,6 +224,8 @@
 
             const result = await response.json();
             if (result.tags && result.tags.length > 0) {
+                // Filtrera baserat på konfidens om API:et returnerar det (StashAPI Go returnerar just nu bara en lista med strängar)
+                // Om vi vill ha mer avancerad filtrering får vi uppdatera Go-API:et också.
                 showTagsModal(sceneId, result.tags);
             } else {
                 alert("JoyTag hittade inga taggar.");
@@ -201,7 +235,8 @@
                 document.body.removeChild(loadingOverlay);
             }
             console.error(e);
-            alert("Ett fel uppstod. Kontrollera att Go-API:et (port 5001) och JoyTag API (localhost:5002) är igång.\n\n" + e.message);
+            let msg = e.name === 'AbortError' ? "Analysen tog för lång tid (timeout)." : e.message;
+            alert(`Ett fel uppstod vid kontakt med API:et på ${apiUrl}\n\n` + msg);
         }
     }
 
