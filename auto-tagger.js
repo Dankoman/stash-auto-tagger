@@ -43,7 +43,14 @@
             if (data && data.plugins) {
                 const myPlugin = data.plugins.find(p => p.name === "Auto Tagger" || p.id === "auto-tagger");
                 if (myPlugin && myPlugin.settings) {
-                    return myPlugin.settings;
+                    // Stash kan returnera settings som antingen ett objekt eller en array av {key, value}
+                    const raw = myPlugin.settings;
+                    if (Array.isArray(raw)) {
+                        const settings = {};
+                        raw.forEach(s => { if(s.key) settings[s.key] = s.value; });
+                        return settings;
+                    }
+                    return raw;
                 }
             }
         } catch (e) {
@@ -74,7 +81,8 @@
         } catch(e) { console.error("Sökfel för tagg:", tagName, e); }
 
         // Om den inte finns, skapa den om inställningen tillåter
-        if (!autoCreate) return null;
+        // Vi är extra tillåtande här om autoCreate inte är explicit false
+        if (autoCreate === false) return null;
 
         const createMutation = `
             mutation TagCreate($input: TagCreateInput!) {
@@ -82,11 +90,13 @@
             }`;
         try {
             const data = await stashGraphQL(createMutation, { input: { name: tagName } });
-            return data.tagCreate.id;
+            if (data && data.tagCreate) {
+                return data.tagCreate.id;
+            }
         } catch(e) {
             console.error("Kunde inte skapa tagg:", tagName, e);
-            return null;
         }
+        return null;
     }
 
     // GraphQL Mutation för att lägga till taggar på en scen

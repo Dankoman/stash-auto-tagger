@@ -1,6 +1,6 @@
 name: Auto Tagger
 description: "Automatiskt identifierar och föreslår taggar för scener via lokala AI-modeller (JoyTag). Inkluderar stöd för pausning, bildextraktion och automatiskt skapande av taggar."
-version: 1.2.1
+version: 1.2.2
 url: https://github.com/Dankoman/stash-auto-tagger
 
 ui:
