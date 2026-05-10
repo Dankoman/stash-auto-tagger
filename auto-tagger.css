@@ -1,0 +1,82 @@
+.auto-tagger-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.8;
+}
+.auto-tagger-btn:hover {
+    opacity: 1;
+}
+.auto-tagger-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.auto-tagger-modal {
+    background-color: #222;
+    padding: 20px;
+    border-radius: 8px;
+    z-index: 9999;
+    min-width: 400px;
+    max-width: 80%;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    color: #eee;
+    font-family: sans-serif;
+}
+.auto-tagger-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 20px 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+.auto-tagger-tag {
+    background-color: #333;
+    padding: 6px 12px;
+    border-radius: 16px;
+    cursor: pointer;
+    user-select: none;
+    border: 1px solid #555;
+    transition: all 0.2s;
+}
+.auto-tagger-tag:hover {
+    background-color: #444;
+}
+.auto-tagger-tag.selected {
+    background-color: #4CAF50;
+    border-color: #45a049;
+    color: white;
+}
+.auto-tagger-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+    border-top: 1px solid #444;
+    padding-top: 15px;
+}
+.auto-tagger-actions button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.btn-cancel {
+    background-color: #555;
+    color: white;
+}
+.btn-save {
+    background-color: #4CAF50;
+    color: white;
+}
