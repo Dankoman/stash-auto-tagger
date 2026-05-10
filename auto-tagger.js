@@ -100,7 +100,7 @@
             // Slå ihop och ta bort dubbletter
             const finalTagIds = Array.from(new Set([...existingTagIds, ...newTagIds]));
             
-            const mutate = `mutation SceneUpdate($input: SceneUpdateInput!) { sceneUpdate(input: $input) { id tag_ids } }`;
+            const mutate = `mutation SceneUpdate($input: SceneUpdateInput!) { sceneUpdate(input: $input) { id } }`;
             await stashGraphQL(mutate, { input: { id: sceneId, tag_ids: finalTagIds } });
             
             // Ladda om sidan för att visa de nya taggarna
